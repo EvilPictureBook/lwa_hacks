@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!-- args -->
+	<arg name="robot" value="raw3-3"/>
+	<arg name="pc1" default="localhost"/>
+	<arg name="pc2" default="localhost"/>
+	<arg name="pc3" default="localhost"/>
+
+	<!-- upload robot description -->
+	<include file="$(find cob_hardware_config)/common/upload_robot.launch" >
+		<arg name="robot" value="$(arg robot)" />
+	</include>
+
+	<!-- upload default configuration parameters -->
+	<include file="$(find cob_default_robot_config)/raw3-3/upload_param_raw3-3.launch" />
+
+	<group>
+	<machine name="pc1" address="$(arg pc1)" env-loader="$(find cob_bringup)/env.sh" default="true"/>
+
+		<!-- startup hardware -->
+		<include file="$(find cob_bringup)/drivers/base_driver.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+		<include file="$(find cob_bringup)/controllers/base_controller.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+		
+		<include file="$(find cob_bringup)/drivers/sick_s300.launch" >
+			<arg name="robot" value="$(arg robot)" />
+			<arg name="name" value="front" />
+		</include>
+		<include file="$(find cob_bringup)/drivers/sick_s300.launch" >
+			<arg name="robot" value="$(arg robot)" />
+			<arg name="name" value="rear" />
+		</include>
+		
+		<include file="$(find cob_bringup)/drivers/relayboard.launch" >
+			<arg name="sim" value="true" />
+		</include>
+
+		<include file="$(find cob_bringup)/drivers/phidgets.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+		
+<!--
+		<include file="$(find cob_bringup)/drivers/frida.launch" >
+			<arg name="robot_ip" value="192.168.125.1" />
+		</include>
+		<node ns="arm" pkg="robot_state_publisher" type="state_publisher" name="robot_state_publisher"/>
+-->
+
+		<!--include file="$(find cob_bringup)/drivers/prace_grippers.launch"/-->
+
+		<!-- start additional packages -->
+		<include file="$(find cob_bringup)/tools/diagnostics_aggregator.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+		<include file="$(find cob_bringup)/tools/teleop.launch" >
+			<arg name="robot" value="$(arg robot)" />
+			<arg name="version" value="v1" />
+		</include>
+		<include file="$(find cob_bringup)/tools/base_collision_observer.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+		<!--include file="$(find cob_bringup)/drivers/canopen_402.launch" >
+			<arg name="robot" value="$(arg robot)" />
+			<arg name="component_name" value="torso" />
+			<arg name="can_module" value="can1" />
+		</include>
+		<include file="$(find cob_bringup)/controllers/generic_controller.launch">
+			<arg name="robot" value="$(arg robot)"/>
+			<arg name="component_name" value="torso"/>
+		</include-->
+		<include file="$(find cob_bringup)/tools/emergency_stop_monitor.launch" >
+			<arg name="robot" value="$(arg robot)" />
+		</include>
+	</group>
+
+	<group>
+	<machine name="pc2" address="$(arg pc2)" env-loader="$(find cob_bringup)/env.sh" default="true"/>
+
+		<!-- pc monitor -->
+		<include file="$(find cob_bringup)/tools/pc_monitor.launch" >
+			<arg name="robot" value="$(arg robot)" />
+			<arg name="pc" value="$(arg pc2)" />
+		</include>
+
+		<!-- light -->
+		<include file="$(find cob_bringup)/drivers/light.launch" >
+			<arg name="robot" value="$(arg robot)"/>
+		</include>
+
+	</group>
+
+
+	<machine name="pc1" address="$(arg pc1)" env-loader="$(find cob_bringup)/env.sh" default="true"/>
+
+</launch>

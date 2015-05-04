@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="raw3-3" >
+  
+  <!-- common stuff -->
+  <xacro:include filename="$(find cob_description)/urdf/common.xacro" />
+  <xacro:include filename="$(find cob_description)/urdf/materials.urdf.xacro" />
+
+  <xacro:include filename="$(find cob_hardware_config)/raw3-3/urdf/properties.urdf.xacro" />   
+  <!-- raw base -->
+  <xacro:include filename="$(find raw_description)/urdf/base_short/base.urdf.xacro" />
+
+  <!-- raw tower -->
+<!--
+  <xacro:include filename="$(find raw_description)/urdf/tower_symetric/tower.urdf.xacro" />
+-->
+
+  <!-- frida --> 
+  <xacro:include filename="$(find prace_common)/urdf/prace.urdf.xacro" />
+
+
+  <!-- composition of the robot -->
+  <xacro:raw_base name="base"/>
+  <gazebo>
+    <plugin name="ros_control" filename="libmulti_hw_interface_gazebo_ros_control.so">
+      <robotNamespace>base</robotNamespace>
+      <filterJointsParam>joint_names</filterJointsParam>
+    </plugin>
+  </gazebo>
+
+<!--
+  <xacro:tower_symetric name="tower" parent="base_link">
+      <origin xyz="${tower_x} ${tower_y} ${tower_z}" rpy="${tower_roll} ${tower_pitch} ${tower_yaw}" />
+  </xacro:tower_symetric>
+-->
+
+  <!-- prace macros -->
+  <xacro:prace/>
+
+<!--
+  <xacro:lookat name="lookat" parent="head_cam_holder_link" lower="0.0" upper="8.0">
+    <origin xyz="${head_x} ${head_y} ${head_z}" rpy="${head_roll} ${head_pitch} ${head_yaw}" />
+    <axis xyz="1 0 0"/>
+  </xacro:lookat>
+-->
+
+</robot>

@@ -362,16 +362,19 @@ M5DLL_API int WINAPI PCube_configFromFile( const char* acFileName )
 
 M5DLL_API int WINAPI PCube_openDevice( int* piDeviceId, const char* acInitString )
 {
+	std::cout<<"PCUBE INIT HERE\n\n";
 	int iRetVal = 0;
 	int i, iDeviceNumber;
 	bool bReplace = false;
 	CMessage clDebug("M5apiw32", g_iM5DebugLevel, g_iM5Debug, g_iM5DebugFile);
+// 	clDebug.debug(0, "TEST TEST TEST TEST");
 	if(acInitString == NULL || strlen(acInitString) == 0)
 	{
 		return ERRID_DEV_NOINITSTRING;
 	}
 	iDeviceNumber = g_apclDevice.size();
 	clDebug.debug(0,"number of possible devices %i", iDeviceNumber);
+	std::cout<<"[M5] pclDevice is now a pointer to PCanDevice [PCAN]\n\n";
 	for (i=0;i<iDeviceNumber;i++)
 	{
 		clDebug.debug(0,"checking device %i", i);
@@ -384,7 +387,9 @@ M5DLL_API int WINAPI PCube_openDevice( int* piDeviceId, const char* acInitString
 				return 0;
 			}
 	}
-	CDevice* pclDevice = newDevice(acInitString);
+	std::cout<<"[M5] creating new DEV pointer\n\n";
+	CDevice* pclDevice = newDevice(acInitString); //new Device class
+	std::cout<<"[M5] created new DEV p...\n\n";
 	if(pclDevice == NULL)
 	{
 		return ERRID_DEV_NODEVICENAME;
@@ -393,6 +398,7 @@ M5DLL_API int WINAPI PCube_openDevice( int* piDeviceId, const char* acInitString
 	pclDevice->setDebug(g_iM5Debug);
 	pclDevice->setDebugLevel(g_iM5DebugLevel);
 	pclDevice->setDebugFile(g_iM5DebugFile);
+	std::cout<<"[M5] sent init command --> dev\n\n";
 	iRetVal = pclDevice->init(acInitString);
 	if(iRetVal != 0)
 	{

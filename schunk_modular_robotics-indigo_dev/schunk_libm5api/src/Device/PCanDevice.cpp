@@ -48,6 +48,11 @@
 
 #include "PCanDevice.h"
 #include <errno.h>
+#include <iostream>
+#include <libpcan.h>
+#include <stdio.h>
+#include <fcntl.h>
+
 // ========================================================================== ;
 //                                                                            ;
 // ---- private auxiliary functions ----------------------------------------- ;
@@ -149,28 +154,33 @@ int CPCanDevice::setBaudRate()
 	 * baud rate must be set when initializing can device!
 	 *
 	 * */
-
+	printf("[PCAN] Setting Baudrate\n\n");
         debug(0,"entering CPCanDevice::setBaudRate()...\n");
-	warning("PCan Device must be reset to set the new baud rate!\n");
+	warning("PCan Device must be reset to set the new baud rate!\n"); //###@@@## ???? what does this involve 
 	
 	int iRetVal = 0;
 	m_iErrorState = 0;
-
+	std::cout<<"[PCAN] Desired Baudrate: " <<m_iBaudRate <<"\n";
 	switch( m_iBaudRate )
 	{
 		case 125:
+			std::cout<<"[PCAN] Baudrate set to 125K\n\n";
 			m_uiBaudRate=CAN_BAUD_125K;	// 125k
 			break;
 		case 250:
+			std::cout<<"[PCAN] Baudrate set to 250K\n\n";
 			m_uiBaudRate=CAN_BAUD_250K;	// 250k
 			break;
 		case 500:
+			std::cout<<"[PCAN] Baudrate set to 500K\n\n";
 			m_uiBaudRate=CAN_BAUD_500K;	// 500k
 			break;
 		case 1000:
+			std::cout<<"[PCAN] Baudrate set to 1000K\n\n";
 			m_uiBaudRate=CAN_BAUD_1M;	// 1000k
 			break;
 		default:
+			std::cout<<"[PCAN] Baudrate set to DEFAULT (250K)\n\n";
 			m_uiBaudRate=CAN_BAUD_250K;	// 250k
 			break;
 	}
@@ -180,6 +190,7 @@ int CPCanDevice::setBaudRate()
 	{
 		CAN_Close(m_handle);
 	}
+	std::cout<<"[PCAN] CALL init(m_uiBaudrate)\n\n";
 	iRetVal = init(m_uiBaudRate);
         debug(0,"InitFlag set to %d\n",m_bInitFlag);
 	if(iRetVal != CAN_ERR_OK)
@@ -216,6 +227,7 @@ int CPCanDevice::setMessageId(unsigned long uiMessageId)
 //ok
 int CPCanDevice::clearReadQueue()
 {
+	std::cout<<"[PCAN] clearReadQueue\n\n";
 	int iRetVal = 0;
 	TPCANRdMsg TPCMsg;
 	
@@ -229,8 +241,10 @@ int CPCanDevice::clearReadQueue()
 	{	
 		//iRetVal = canRead(m_hDevice, &clESDProtocolMessage, &iNumberOfMessages, NULL);			
 	        debug(0,"Trying to read messages ...");
+		std::cout<<"Trying to read messages ...\n";
                 iRetVal = LINUX_CAN_Read_Timeout(m_handle, &TPCMsg, m_uiTimeOut);
                 debug(0," 0x%04x\n",iRetVal);
+		printf(" 0x%04x\n",iRetVal);
 
 	}while( iRetVal != CAN_ERR_QRCVEMPTY ) ;
 	
@@ -378,19 +392,28 @@ int CPCanDevice::reinit(unsigned char ucBaudRateId)
 
 int CPCanDevice::readDevice(CProtocolMessage& rclProtocolMessage)
 {
+  
+// 	std::cout<<"[PCAN] read device()\n";
 	int iRetVal = 0;
 	
-	TPCANRdMsg TPCMsg;
-	TPCMsg.Msg.LEN = 8;
-	TPCMsg.Msg.MSGTYPE = 0;
-	TPCMsg.Msg.ID = 0;
+// 	TPCANRdMsg TPCMsg;
+	TPCANMsg TPCMsg;
+	TPCMsg.LEN = 8;
+	TPCMsg.MSGTYPE = 0;
+	TPCMsg.ID = 0;
 
 	m_iErrorState = 0;
         int no = 0;
         do
         {
                 m_iErrorState = 0;
-	        iRetVal = LINUX_CAN_Read_Timeout(m_handle, &TPCMsg, m_uiTimeOut);
+// 		std::cout<<"[PCAN] call LINUX_CAN_Read_Timeout\n";
+// 		std::cout<<"[PCAN] m_handle: "<<m_handle<<"\n";
+// 	        iRetVal = LINUX_CAN_Read_Timeout(m_handle, &TPCMsg, m_uiTimeOut);
+		while ((iRetVal=CAN_Read(m_handle,&TPCMsg)) == 0x00020) // PCAN_ERROR_QRCVEMPTY
+			usleep(1000);
+// 		std::cout<<"[PCAN] read iRetVal: " << iRetVal <<"\n";
+// 		printf("[PCAN] CAN read iRetVal: 0x%04x\n", iRetVal);
                 if (iRetVal == CAN_ERR_OK)
                   break;
                 else
@@ -399,13 +422,17 @@ int CPCanDevice::readDevice(CProtocolMessage& rclProtocolMessage)
 
                 m_iErrorState = getDeviceError(iRetVal);
                 debug(2,"Read error (%s), attempt %d of %d",strerror(nGetLastError()),no,m_iNoOfRetries+1);
+// 		printf("[PCAN] Read error (%s), attempt %d of %d\n",strerror(nGetLastError()),no,m_iNoOfRetries+1);
                 //sleep(100);
         }while (no <= m_iNoOfRetries);
 	if (iRetVal == CAN_ERR_OK)
 	{
-		rclProtocolMessage.m_uiMessageId = TPCMsg.Msg.ID;
-		rclProtocolMessage.m_ucMessageLength = TPCMsg.Msg.LEN;
-		memcpy(rclProtocolMessage.m_aucMessageData, TPCMsg.Msg.DATA, rclProtocolMessage.m_ucMessageLength);
+// 		rclProtocolMessage.m_uiMessageId = TPCMsg.Msg.ID;
+// 		rclProtocolMessage.m_ucMessageLength = TPCMsg.Msg.LEN;
+// 		memcpy(rclProtocolMessage.m_aucMessageData, TPCMsg.Msg.DATA, rclProtocolMessage.m_ucMessageLength);
+		rclProtocolMessage.m_uiMessageId = TPCMsg.ID;
+		rclProtocolMessage.m_ucMessageLength = TPCMsg.LEN;
+		memcpy(rclProtocolMessage.m_aucMessageData, TPCMsg.DATA, rclProtocolMessage.m_ucMessageLength);
                 printMessage(rclProtocolMessage,READ);
 	}
 	else
@@ -413,13 +440,15 @@ int CPCanDevice::readDevice(CProtocolMessage& rclProtocolMessage)
                 //warning("Last Error reported: %s",strerror(nGetLastError()));
 		//m_iErrorState = getDeviceError(iRetVal);
 		warning("CAN read failed Errorcode: 0x%04x", iRetVal);
+		printf("[PCAN] CAN read failed Errorcode: 0x%04x\n", iRetVal);
+		printf("[PCAN] Read error (%s)\n",strerror(nGetLastError()));
 //		return m_iErrorState;
 	}
         return m_iErrorState;
 }
 
 
-//ok
+//ok // lol, *NOT* OK
 int CPCanDevice::writeDevice(CProtocolMessage& rclProtocolMessage)
 {
 	int iRetVal = 0;
@@ -434,6 +463,7 @@ int CPCanDevice::writeDevice(CProtocolMessage& rclProtocolMessage)
 	if(rclProtocolMessage.m_bRTRFlag)
 		TPCMsg.MSGTYPE = MSGTYPE_RTR;
 	memcpy(TPCMsg.DATA, rclProtocolMessage.m_aucMessageData, rclProtocolMessage.m_ucMessageLength);
+// 	std::cout<<"[PCAN] (WRITE) m_handle: "<<m_handle<<"\n";
 	iRetVal = CAN_Write(m_handle, &TPCMsg);
 	if(iRetVal != CAN_ERR_OK)
 	{
@@ -444,7 +474,7 @@ int CPCanDevice::writeDevice(CProtocolMessage& rclProtocolMessage)
         iRetVal = CAN_Status(m_handle);
         if (iRetVal < 0)
         {
-                warning("Last Error reported: %s",strerror(nGetLastError()));
+                warning("Last Error reported: %s\n",strerror(nGetLastError()));
                 m_iErrorState = ERRID_DEV_WRITEERROR;
         }
 
@@ -457,11 +487,13 @@ int CPCanDevice::writeDevice(CProtocolMessage& rclProtocolMessage)
 //                                                                            ;
 // ========================================================================== ;
 
-CPCanDevice::CPCanDevice() : m_hDevice(0), m_hSyncDevice(0), m_iDeviceId(-1), m_uiBaudRate(0), m_uiQueueSize(128), m_uiTimeOut(3)		// ESD C331
+CPCanDevice::CPCanDevice() : m_hDevice(0), m_hSyncDevice(0), m_iDeviceId(-1), m_uiBaudRate(0), m_uiQueueSize(128), m_uiTimeOut(3)		// ESD C331 !!! ESD!!!! REALLY!!!!!!!!!!!!! INSIDE PCAN- DRIVER!!! I HATE YOU SO MUCH
 {
+	std::cout<<"[CAN] INIT\n\n"<<std::endl;
 	initMessage("CPCanDevice", g_iDebugLevel, g_bDebug, g_bDebugFile);
 	m_DeviceName = (char*) malloc(200 * sizeof(char));
 	memset(m_DeviceName,0,sizeof(m_DeviceName));
+	std::cout<<"[CAN] INIT-FIN\n\n"<<std::endl;
 }
 
 CPCanDevice::CPCanDevice(const CPCanDevice& rclPCanDevice)
@@ -525,14 +557,18 @@ void CPCanDevice::setTimeOut(unsigned long uiTimeOut)
 //ok
 int CPCanDevice::init()
 {
+	std::cout<<"[PCAN] BLANK INIT (250K)\n\n";
 	return init(CAN_BAUD_250K);
 }
 int CPCanDevice::init(unsigned long baudRate)
 {
 	int iRetVal = CAN_ERR_OK;
-        printf("Initializing pcan device ...\n");
+//         printf("[PCAN] BLANK INIT cnt. (250K) Initializing pcan device\n\n");
+	std::cout<<"[PCAN] INIT(rate), rateCODE (CAN_BAUD_X): "<< baudRate <<"\n\n";
 	//m_handle = LINUX_CAN_Open("/dev/pcan32", O_RDWR);
-	m_handle = LINUX_CAN_Open(m_DeviceName,0);
+// 	m_handle = LINUX_CAN_Open(m_DeviceName,0);
+	m_handle = LINUX_CAN_Open(m_DeviceName, O_RDWR); //###@@@###
+	std::cout<<"[PCAN] (INITR) m_handle: "<<m_handle<<"\n";
 
 	if (! m_handle)
 	{
@@ -542,6 +578,7 @@ int CPCanDevice::init(unsigned long baudRate)
 	}
 	else
 	{
+		std::cout<<"[PCAN](INIT baud/type) m_handle: "<<m_handle<<"\n";
 		iRetVal = CAN_Init(m_handle, baudRate, CAN_INIT_TYPE_ST);
 	}
 	if(iRetVal != CAN_ERR_OK)
@@ -550,7 +587,7 @@ int CPCanDevice::init(unsigned long baudRate)
 	}
 	else
 	{
-		printf("PcanDevice, init ok\n" );
+		printf("[PCAN] PcanDevice, init ok\n" );
                 m_bInitFlag = true;
 	}
 	return iRetVal;
@@ -561,6 +598,7 @@ int CPCanDevice::init(unsigned long baudRate)
  */
 int CPCanDevice::init(const char* acInitString)
 {
+	printf("[PCAN] Initializing pcan device USING initSTRING\n\n");
 	InitializeCriticalSection(&m_csDevice);
 	int iRetVal = 0;
 	m_uiTimeOut =6;
@@ -587,22 +625,25 @@ int CPCanDevice::init(const char* acInitString)
 	pcToken = strtok( acString, ":" );
 	if( !pcToken )
 	{	m_iErrorState = ERRID_DEV_BADINITSTRING;
+		printf("[PCAN] BAD INIT STRING\n\n");
 		return m_iErrorState;
 	}
 	if( strcmp( pcToken, "PCAN" ) != 0 )
 	{	m_iErrorState = ERRID_DEV_BADINITSTRING;
+		printf("[PCAN] BAD INIT STRING\n\n");
 		return m_iErrorState;
 	}
 	pcToken = strtok( NULL, "," );
 	if( !pcToken )
 	{	m_iErrorState = ERRID_DEV_BADINITSTRING;
+		printf("[PCAN] BAD INIT STRING\n\n");
 		return m_iErrorState;
 	}
 
 
 	
 	
-	m_iDeviceId = atoi(pcToken);
+	m_iDeviceId = atoi(pcToken); //set device id
 	//std::cout << m_iDeviceId << std::endl;
 
 
@@ -646,14 +687,16 @@ int CPCanDevice::init(const char* acInitString)
 	pcToken = strtok( NULL, "," );
 	if( !pcToken )
 	{	m_iErrorState = ERRID_DEV_BADINITSTRING;
+		printf("[PCAN] BAD INIT STRING\n\n");
 		return m_iErrorState;
 	}
-	m_iBaudRate = atoi(pcToken);
+	m_iBaudRate = atoi(pcToken); //set baudrate
 
 
 	try
 	{
 		m_handle = LINUX_CAN_Open(m_DeviceName,0);
+		std::cout<<"[PCAN](INIT STR) m_handle: "<<m_handle<<"\n";
 		if (! m_handle)
 		{
 			// Fatal error
@@ -732,10 +775,12 @@ int CPCanDevice::init(const char* acInitString)
 	}
 	
 
+	std::cout<<"[PCAN] call setBaudrate\n\n";
 	m_iErrorState = setBaudRate();
 	if(m_iErrorState != 0)
 		return m_iErrorState;
 
+	std::cout<<"[PCAN] call clearReadQueue\n\n";
 	m_iErrorState = clearReadQueue();
 	if(m_iErrorState != 0)
 		return m_iErrorState;
@@ -744,8 +789,13 @@ int CPCanDevice::init(const char* acInitString)
         {
 		m_bInitFlag = true;
                 debug(0,"PCanDevice:init successfull!\n");
+		printf("[PCAN] init successfull\n\n");
         }
-	updateModuleIdMap();
+        std::cout<<"\n[PCAN] INIT call updateModuleIdMap\n\n";
+	
+// 	for(int iii=0;iii<10;iii++){
+	updateModuleIdMap(); //UPDATE MODULE MAP !!! here . . .
+// 	}
 
 	return m_iErrorState;
 }
@@ -778,6 +828,7 @@ int CPCanDevice::exit()
 	}
 	EnterCriticalSection(&m_csDevice);
 	iRetVal = CAN_ERR_OK;
+	std::cout<<"[PCAN] (CLOSE) m_handle: "<<m_handle<<"\n";
 	iRetVal = CAN_Close(m_handle);
 	if(iRetVal != CAN_ERR_OK)
 	{

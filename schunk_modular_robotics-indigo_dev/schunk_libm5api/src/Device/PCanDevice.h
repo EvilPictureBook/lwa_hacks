@@ -52,6 +52,10 @@
 #include "../Device/ProtocolDevice.h"
 #include "libpcan.h"
 
+#include <stdio_ext.h>
+#include<iostream>
+// std::fprint("PCAN <----> \n\n")
+
 class CPCanDevice : public CProtocolDevice  
 {
 	private:

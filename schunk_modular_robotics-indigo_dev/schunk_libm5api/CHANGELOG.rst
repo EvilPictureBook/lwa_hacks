@@ -2,9 +2,6 @@
 Changelog for package schunk_libm5api
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.6.3 (2015-06-17)
-------------------
-
 0.6.2 (2014-12-15)
 ------------------
 * fix minor compiler warnings

@@ -362,6 +362,7 @@ int CProtocolDevice::readShort(int iModuleId, int iCommandId, int iParameterId, 
 
 int CProtocolDevice::readUnsignedShort(int iModuleId, int iCommandId, int iParameterId, unsigned short* puiData)
 {
+	std::cout<<"[PROT-DEV] readUnsignedShort\n";
 	EnterCriticalSection(&m_csDevice);
 	m_iErrorState = 0;
 	bool bRecieved = false;
@@ -378,6 +379,7 @@ int CProtocolDevice::readUnsignedShort(int iModuleId, int iCommandId, int iParam
 	m_iErrorState = writeDevice(clWrite);
 	if(m_iErrorState != 0)
 	{
+		std::cout<<"[PROT] writeDevice ERROR\n";
 		warning("wrong writeDevice ErrorCode %i", m_iErrorState);
 		LeaveCriticalSection(&m_csDevice);
 		return m_iErrorState;
@@ -385,9 +387,12 @@ int CProtocolDevice::readUnsignedShort(int iModuleId, int iCommandId, int iParam
 
 	do
 	{	
+		std::cout<<"[PROT] call readDevice() . . . \n";
+// 		usleep(1000);
 		m_iErrorState = readDevice(clRead);
 		if(m_iErrorState != 0)
-		{
+		{	
+			std::cout<<"[PROT] readDevice ERROR\n";
 			//warning("wrong readDevice ErrorCode %i", m_iErrorState);
 			LeaveCriticalSection(&m_csDevice);
 			return m_iErrorState;

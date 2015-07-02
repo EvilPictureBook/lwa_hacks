@@ -45,17 +45,21 @@
  * 
  ******************************************************************************/
 
+#include<iostream>
 
 #include "Device.h"
 #include "RS232Device.h"
 #ifdef USE_ESD
-#include "ESDDevice.h"
+// #include "ESDDevice.h"
+// cout<<" ----->>>>> USING ESD\n\n";
 #endif
 #ifdef USE_PCAN
 #include "PCanDevice.h"
+// cout<<" ----->>>>> USING PCAN\n\n";
 #endif
 #if defined (_WIN32)
-	#include "CP5X11Device.h"
+// 	#include "CP5X11Device.h"
+// cout<<" ----->>>>> USING STUPID\n\n";
 #endif
 
 // ========================================================================== ;
@@ -238,6 +242,7 @@ int CDevice::getModuleType(int iModuleId, unsigned char* pucValue)
 
 int CDevice::getModuleVersion(int iModuleId, unsigned short* puiValue)
 {
+	std::cout<<"[DEV] getmoduleVersion\n\n";
 	m_iErrorState = 0;
 	if(m_bInitFlag == false)
 	{
@@ -251,6 +256,7 @@ int CDevice::getModuleVersion(int iModuleId, unsigned short* puiValue)
 		m_iErrorState = ERRID_DEV_WRONGMODULEID;
 		return m_iErrorState;
 	}
+	std::cout<<"[DEV] call readUnsignedShort\n\n";
 	m_iErrorState = readUnsignedShort(iModuleId, CMDID_GETPARAM, PARID_DEF_VERSION, puiValue);
 
 	return m_iErrorState;
@@ -3806,6 +3812,7 @@ int CDevice::setCurrentLimit(int iModuleId, float fValue)
 
 int CDevice::updateModuleIdMap()
 {
+	std::cout<<"[DEV] updateModuleIdMap . . .\n\n";
 	unsigned short uiVersion;
 	std::vector<float> afData;
 	if(m_bInitFlag == false)
@@ -3818,18 +3825,24 @@ int CDevice::updateModuleIdMap()
 	m_auiModuleVersion.clear();
 
 	m_iModuleCount = m_iModuleCountMax;	// timout = m_uiTimeOut + 10 * m_iModuleCount for RS232
-	for(int i = 1; i <= m_iModuleCountMax; i++)
+// 	for(int i = 1; i <= m_iModuleCountMax; i++)
+	for(int i = 1; i <= 6; i++)
 	{
-		debug(0,"searching for module %i", i);
+		debug(0,"[DEV] searching for module %i", i);
+// 		std::cout<<"[DEV] searching for module "<<i<<std::endl;
 		m_iErrorState = getModuleVersion(i, &uiVersion);
 		if(m_iErrorState == 0)
 		{
 			m_aiModuleId.push_back(i);
 			m_auiModuleVersion.push_back(uiVersion);
 			debug(0,"found module with ID %i and Version %x", i, uiVersion);
+			printf("found module with ID %i and Version %x\n", i, uiVersion);
 		}
 		else
+		{
+// 			std::cout<<"did not find module "<<i<<std::endl;
 			m_iErrorState = 0;
+		}
 	}
 	m_iModuleCount = m_aiModuleId.size();
 	m_iErrorState = 0;
@@ -4795,6 +4808,7 @@ int CDevice::getStateInternal(int iModuleId, unsigned long* pStat )
 
 CDevice* newDevice(const char* acInitString)
 {
+	std::cout<<"[DEV] NEW DEVICE BEING CREATED\n\n";
 	char* pcToken;
 	char acString[128];
 
@@ -4806,28 +4820,29 @@ CDevice* newDevice(const char* acInitString)
 		return NULL;
         }
 
-	if( strcmp( pcToken, "RS232" ) == 0 )
-	{
-		return new CRS232Device();
-	}
+// 	if( strcmp( pcToken, "RS232" ) == 0 )
+// 	{
+// 		return new CRS232Device();
+// 	}
 #ifdef USE_PCAN
 	if( strcmp( pcToken, "PCAN" ) == 0 )
 	{
+	  std::cout<<"[DEV] PCAN DEVICE CREATED FOR USE\n\n";
 		return new CPCanDevice();
 	}
 #endif
-#ifdef USE_ESD
-	if( strcmp( pcToken, "ESD" ) == 0 )
-	{
-		return new CESDDevice();
-	}
-#endif
-#if defined(_WIN32)	
-	if( strcmp( pcToken, "CP5X11" ) == 0 )
-	{
-		return new CCP5X11Device();
-	}
-#endif
+// #ifdef USE_ESD
+// 	if( strcmp( pcToken, "ESD" ) == 0 )
+// 	{
+// 		return new CESDDevice();
+// 	}
+// #endif
+// #if defined(_WIN32)	
+// 	if( strcmp( pcToken, "CP5X11" ) == 0 )
+// 	{
+// 		return new CCP5X11Device();
+// 	}
+// #endif
         printf("CDevice* newDevice(const char* acInitString): wrong format, no device found!\n");
 	return NULL;
 }

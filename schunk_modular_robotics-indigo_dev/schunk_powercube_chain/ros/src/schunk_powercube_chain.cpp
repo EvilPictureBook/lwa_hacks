@@ -683,7 +683,7 @@ int main(int argc, char** argv)
   else
   {
     //frequency of driver has to be much higher then controller frequency
-    frequency = 10; //Hz
+    frequency = 100; //Hz //### set to 100. Hopefully this will be fine
     ROS_WARN("Parameter 'frequency' not available, setting to default value: %f Hz", frequency);
   }
 
@@ -710,10 +710,10 @@ int main(int argc, char** argv)
   ros::Rate loop_rate(frequency); // Hz
   while (pc_node.n_.ok())
   {
-    if ((ros::Time::now() - pc_node.last_publish_time_) >= min_publish_duration)
-    {
+//    if ((ros::Time::now() - pc_node.last_publish_time_) >= min_publish_duration)
+//    {
       pc_node.publishState();
-    }
+//    }
 
     /// sleep and waiting for messages, callbacks
     ros::spinOnce();

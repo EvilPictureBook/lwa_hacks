@@ -49,7 +49,7 @@
 #include "PCanDevice.h"
 #include <errno.h>
 #include <iostream>
-#include <libpcan.h>
+//#include <libpcan.h>
 #include <stdio.h>
 #include <fcntl.h>
 

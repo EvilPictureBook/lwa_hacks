@@ -50,7 +50,7 @@
 #define CPCANDEVICE_H
 
 #include "../Device/ProtocolDevice.h"
-#include <libpcan/libpcan.h>
+#include <libpcan/libpcan.h> //#include "libpcan.h"
 
 #include <stdio_ext.h>
 #include<iostream>

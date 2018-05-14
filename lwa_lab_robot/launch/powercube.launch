@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="useTrajectory" default="false"/>
+
+	<!-- load robot_description onto the parameter server -->
+	<param name="robot_description" command="$(find xacro)/xacro.py '$(find lwa_lab_robot)/urdf/LWA_3_LAB.xacro'" /> 
+
+	<group ns="arm" >
+
+		<!-- arm driver -->
+		<node pkg="schunk_powercube_chain" type="schunk_powercube_chain" name="arm_driver" respawn="false" output="screen" >
+			<rosparam command="load" file="$(find lwa_lab_robot)/config/lwa_lab_powercube.yaml"/>
+		</node>
+
+		<!-- controller(s') parameters -->
+		<rosparam command="load" file="$(find lwa_lab_robot)/config/lwa_lab_arm_controller.yaml" />
+
+		
+
+		<!-- LWA3 BASIC trajectory controller (not recommended for anything complex) -->
+		<node if="$(arg useTrajectory)" pkg="cob_trajectory_controller" type="cob_trajectory_controller" name="joint_trajectory_controller" cwd="node" respawn="false" output="screen" />
+
+		<node if="$(arg useTrajectory)" name="MATLAB_Trajectory_relay" pkg="lwa_control" type="matlab_trajectory_relay.py" output="screen"/>
+		<!-- <node if="$(arg useTrajectory)" name="namespace_hardware_relay" pkg="lwa_control" type="namespace_HW_relay.py" output="screen"/> -->
+
+		<!-- robot_state_publisher -->
+		<node pkg="robot_state_publisher" type="state_publisher" name="robot_state_publisher"/>
+
+	</group>
+
+</launch>

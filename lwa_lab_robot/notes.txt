@@ -1,0 +1,279 @@
+bring can interface online/offline
+
+sudo ip link set can0 up type can bitrate 500000
+sudo ip link set can0 down
+
+alt:
+sudo ip link set can0 type can bitrate 500000 (1000000)
+sudo ip link set can0 up (set up can0)
+
+-----------------------
+modprobe can
+modprobe can-dev
+modprobe can-raw
+peak_usb ***
+
+ip link set can0 up type can bitrate 500000 (500k)
+
+?????????????????
+#which ip
+THIS: /sbin ip 
+NOT: /bin ip
+
+
+------------------------
+ifconfig can0 up
+ifconfig can0 down
+
+#cat /proc/net/can/version
+#cat /proc/net/can/stats
+
+-------------------------------
+candump can0
+
+---------- can doc S:6.5.1 (http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/plain/Documentation/networking/can.txt)
+
+
+- Setting CAN device properties:
+
+    $ ip link set can0 type can help
+    Usage: ip link set DEVICE type can
+    	[ bitrate BITRATE [ sample-point SAMPLE-POINT] ] |
+    	[ tq TQ prop-seg PROP_SEG phase-seg1 PHASE-SEG1
+     	  phase-seg2 PHASE-SEG2 [ sjw SJW ] ]
+
+    	[ loopback { on | off } ]
+    	[ listen-only { on | off } ]
+    	[ triple-sampling { on | off } ]
+
+    	[ restart-ms TIME-MS ]
+    	[ restart ]
+
+    	Where: BITRATE       := { 1..1000000 }
+    	       SAMPLE-POINT  := { 0.000..0.999 }
+    	       TQ            := { NUMBER }
+    	       PROP-SEG      := { 1..8 }
+    	       PHASE-SEG1    := { 1..8 }
+    	       PHASE-SEG2    := { 1..8 }
+    	       SJW           := { 1..4 }
+    	       RESTART-MS    := { 0 | NUMBER }
+
+  - Display CAN device details and statistics:
+
+    $ ip -details -statistics link show can0
+    2: can0: <NOARP,UP,LOWER_UP,ECHO> mtu 16 qdisc pfifo_fast state UP qlen 10
+      link/can
+      can <TRIPLE-SAMPLING> state ERROR-ACTIVE restart-ms 100
+      bitrate 125000 sample_point 0.875
+      tq 125 prop-seg 6 phase-seg1 7 phase-seg2 2 sjw 1
+      sja1000: tseg1 1..16 tseg2 1..8 sjw 1..4 brp 1..64 brp-inc 1
+      clock 8000000
+      re-started bus-errors arbit-lost error-warn error-pass bus-off
+      41         17457      0          41         42         41
+      RX: bytes  packets  errors  dropped overrun mcast
+      140859     17608    17457   0       0       0
+      TX: bytes  packets  errors  dropped carrier collsns
+      861        112      0       41      0       0
+
+
+6.5.2 Setting the CAN bit-timing
+
+  The CAN bit-timing parameters can always be defined in a hardware
+  independent format as proposed in the Bosch CAN 2.0 specification
+  specifying the arguments "tq", "prop_seg", "phase_seg1", "phase_seg2"
+  and "sjw":
+
+    $ ip link set canX type can tq 125 prop-seg 6 \
+				phase-seg1 7 phase-seg2 2 sjw 1
+
+  If the kernel option CONFIG_CAN_CALC_BITTIMING is enabled, CIA
+  recommended CAN bit-timing parameters will be calculated if the bit-
+  rate is specified with the argument "bitrate":
+
+    $ ip link set canX type can bitrate 125000
+
+  Note that this works fine for the most common CAN controllers with
+  standard bit-rates but may *fail* for exotic bit-rates or CAN system
+  clock frequencies. Disabling CONFIG_CAN_CALC_BITTIMING saves some
+  space and allows user-space tools to solely determine and set the
+  bit-timing parameters. The CAN controller specific bit-timing
+  constants can be used for that purpose. They are listed by the
+  following command:
+
+    $ ip -details link show can0
+    ...
+      sja1000: clock 8000000 tseg1 1..16 tseg2 1..8 sjw 1..4 brp 1..64 brp-inc 1
+
+
+6.5.3 Starting and stopping the CAN network device
+
+  A CAN network device is started or stopped as usual with the command
+  "ifconfig canX up/down" or "ip link set canX up/down". Be aware that
+  you *must* define proper bit-timing parameters for real CAN devices
+  before you can start it to avoid error-prone default settings:
+
+    $ ip link set canX up type can bitrate 125000
+
+  A device may enter the "bus-off" state if too many errors occurred on
+  the CAN bus. Then no more messages are received or sent. An automatic
+  bus-off recovery can be enabled by setting the "restart-ms" to a
+  non-zero value, e.g.:
+
+    $ ip link set canX type can restart-ms 100
+
+  Alternatively, the application may realize the "bus-off" condition
+  by monitoring CAN error message frames and do a restart when
+  appropriate with the command:
+
+    $ ip link set canX type can restart
+
+  Note that a restart will also create a CAN error message frame (see
+  also chapter 3.4).
+
+
+
+----------- ROS-------- socketcan_interface --------------
+sudo modprobe peak_usb ***
+
+sudo ip link set can0 type can bitrate 500000 #adjust as needed ??? recommended ???
+
+autosetup, edit:
+/etc/network/interfaces :::
+
+allow-hotplug can0
+iface can0 can static
+    bitrate 500000
+
+
+rosrun socketcan_interface socketcan_dump can0
+
+ip -details -statistics link show can0
+
+sudo apt-get install can-utils
+--candump
+--cansend
+--canbusload
+
+------ prepare.sh----------
+(plug in adapter)
+sudo modprobe peak_usb
+sudo ip link set can0 up type can bitrate 500000 (500k)
+
+----
+roslaunch lwa_lab_robot robot.launch
+
+---
+rosservice call /arm/driver/init (1M bitrate?)
+
+
+-------------PEAK CUSTOM DRIVER--------------------------
+sudo ip link set up can0
+echo "i 0x001C e" > /dev/pcan32
+
+COMMAND OUTPUT FOR POST ::: -----------------------------------------------------------------
+COMMAND OUTPUT FOR POST ::: -----------------------------------------------------------------
+COMMAND OUTPUT FOR POST ::: -----------------------------------------------------------------
+COMMAND OUTPUT FOR POST ::: -----------------------------------------------------------------
+COMMAND OUTPUT FOR POST ::: -----------------------------------------------------------------
+  -------------------------------------------------------------------
+rosservice call /arm/driver/init
+success: 
+  data: False
+error_message: 
+  data: could not reset node '3'
+
+  -------------------------------------------------------------------
+  lsmod | grep can
+  can_raw                17120  0 
+  can                    36575  1 can_raw
+  can_dev                20764  1 peak_usb
+  -------------------------------------------------------------------
+   cat /proc/net/can/stats
+
+        7 transmitted frames (TXF)
+        7 received frames (RXF)
+        7 matched frames (RXMF)
+
+      100 % total match ratio (RXMR)
+        0 frames/s total tx rate (TXR)
+        0 frames/s total rx rate (RXR)
+
+      100 % current match ratio (CRXMR)
+        0 frames/s current tx rate (CTXR)
+        0 frames/s current rx rate (CRXR)
+
+      100 % max match ratio (MRXMR)
+        6 frames/s max tx rate (MTXR)
+        6 frames/s max rx rate (MRXR)
+
+        0 current receive list entries (CRCV)
+        2 maximum receive list entries (MRCV)
+  -------------------------------------------------------------------
+ROS_MASTER_URI=http://localhost:11311
+
+core service [/rosout] found
+process[arm/robot_state_publisher-1]: started with pid [3921]
+process[arm/driver-2]: started with pid [3922]
+process[arm/joint_state_controller_spawner-3]: started with pid [3923]
+process[arm/cob_control_mode_adapter_node-4]: started with pid [3924]
+[ INFO] [1427125862.856646100]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+process[arm/joint_states_relay-5]: started with pid [3992]
+[ INFO] [1427125867.860408810]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+.
+.
+.
+.
+.
+[WARN] [WallTime: 1427125893.716625] Controller Spawner couldn't find the expected controller_manager ROS interface.
+[arm/joint_state_controller_spawner-3] process has finished cleanly
+log file: /home/dmitri/.ros/log/5e52f9a6-d174-11e4-8a4e-8086f2a028dc/arm-joint_state_controller_spawner-3*.log
+[arm/joint_state_controller_spawner-3] restarting process
+process[arm/joint_state_controller_spawner-3]: started with pid [5566]
+[ INFO] [1427125897.935806849]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+.
+.
+.
+.
+
+(CALLED INIT HERE)<-----------------------
+
+[ INFO] [1427125940.115351983]: Initializing XXX
+[ INFO] [1427125940.115599929]: Current state: 1 device error: system:0 internal_error: 0 (OK)
+[ INFO] [1427125940.115678558]: Current state: 2 device error: system:0 internal_error: 0 (OK)
+[ INFO] [1427125943.033413850]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+[ INFO] [1427125948.046012067]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+SHUTDOWN
+[ INFO] [1427125950.717627476]: Current state: 0 device error: system:0 internal_error: 0 (OK)
+[ INFO] [1427125950.717773235]: Current state: 0 device error: system:0 internal_error: 0 (OK)
+SHUTDOWN
+[ INFO] [1427125953.060361675]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+.
+.
+.
+.
+.
+.
+------------------ USING 1M BITRATE :::::::::::::::::::::::::::::::::::::::::;
+[ INFO] [1427126816.815332241]: Initializing XXX
+[ INFO] [1427126816.822413156]: Current state: 1 device error: system:0 internal_error: 0 (OK)
+[ INFO] [1427126816.822555322]: Current state: 2 device error: system:0 internal_error: 0 (OK)
+error: 4
+[ INFO] [1427126816.823618793]: Current state: 2 device error: system:0 internal_error: 4 (controller problems;)
+[ INFO] [1427126816.823657390]: Current state: 1 device error: system:0 internal_error: 4 (controller problems;)
+ID: 4
+error: 4
+ID: 4
+[ INFO] [1427126819.638926460]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+[ INFO] [1427126824.641857164]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+SHUTDOWN
+[ INFO] [1427126827.424863569]: Current state: 1 device error: system:125 internal_error: 4 (controller problems;)
+[ INFO] [1427126827.425037030]: Current state: 1 device error: system:0 internal_error: 4 (controller problems;)
+[ INFO] [1427126827.425130260]: Current state: 0 device error: system:0 internal_error: 4 (controller problems;)
+[ INFO] [1427126827.425194804]: Current state: 0 device error: system:0 internal_error: 4 (controller problems;)
+SHUTDOWN
+[ INFO] [1427126829.642520938]: waitForService: Service [/arm/controller_manager/load_controller] has not been advertised, waiting...
+
+
+
+
+

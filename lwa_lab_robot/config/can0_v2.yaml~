@@ -1,0 +1,5 @@
+bus:
+  device: dev/pcan34
+sync:
+  interval_ms: 10
+  overflow: 0

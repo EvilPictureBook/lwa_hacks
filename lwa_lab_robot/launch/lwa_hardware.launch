@@ -1,0 +1,47 @@
+<launch>
+
+  <!-- GDB functionality (for debugging controller)-->
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+
+  <!-- load robot_description onto the parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find lwa_lab_robot)/urdf/LWA_3_LAB.xacro'" /> 
+
+
+  <group ns="arm" >
+
+    <!-- arm driver -->
+    <node pkg="schunk_powercube_chain" type="schunk_powercube_chain" name="arm_driver" respawn="false" output="screen" >
+      <rosparam command="load" file="$(find lwa_lab_robot)/config/lwa_lab_powercube.yaml"/>
+    </node>
+
+    <!-- robot_state_publisher -->
+    <node pkg="robot_state_publisher" type="state_publisher" name="robot_state_publisher"/>
+
+  </group>
+
+
+  <group ns="arm_control">
+
+    <!-- controller(s') parameters -->
+    <rosparam command="load" file="$(find lwa_lab_robot)/config/lwa_lab_arm_controller.yaml" />
+
+    <!-- Load hardware interface -->
+    <node name="lwa_hardware_interface" pkg="ros_control_boilerplate" type="generic_hardware_main"
+          output="screen" launch-prefix="$(arg launch_prefix)"/>
+    
+
+    <!-- Load controller manager -->
+    <node name="ros_control_controller_manager" pkg="controller_manager" type="controller_manager" respawn="false"
+	  output="screen" args="spawn joint_state_controller joint_trajectory_controller" />
+
+  </group>
+
+  <node ns="arm" name="Velocity_HW_relay" pkg="lwa_control" type="trajectory_controller_schunk_relay.py" output="screen"/>
+  <!-- <node ns="arm" name="MATLAB_TrajectoryHW_relay" pkg="lwa_control" type="matlab_trajectory_relay_HW.py" output="screen"/> -->
+  <node name="namespace_hardware_relay" pkg="lwa_control" type="namespace_HW_relay.py" output="screen"/>
+
+
+</launch>
